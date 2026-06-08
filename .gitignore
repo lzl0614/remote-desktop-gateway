@@ -2,7 +2,9 @@
 postgres/
 initdb/
 backups/
+drive/
 caddy_data/
 caddy_config/
 *.log
 *.pid
+待优化*

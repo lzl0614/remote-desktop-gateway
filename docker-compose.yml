@@ -18,6 +18,8 @@ services:
     container_name: guacd
     restart: unless-stopped
     network_mode: host
+    volumes:
+      - ./drive:/guacdrive
 
   guacamole:
     image: guacamole/guacamole:${GUAC_VERSION}

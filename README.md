@@ -73,6 +73,10 @@ remote-desktop-gateway/
 │   └── Caddyfile
 ├── nginx/
 │   └── guacamole.conf.example
+├── scripts/
+│   ├── create-rdp-connection.example.sql
+│   ├── init-guacamole-db.sh
+│   └── verify-gateway.sh
 └── portal/
     ├── index.html
     └── styles.css
@@ -84,6 +88,9 @@ remote-desktop-gateway/
 - `docker-compose.yml`：Guacamole、guacd、PostgreSQL、Caddy 服务编排
 - `caddy/Caddyfile`：Caddy HTTPS 和静态入口页配置
 - `nginx/guacamole.conf.example`：Nginx `/guacamole/` 反向代理示例
+- `scripts/init-guacamole-db.sh`：生成 Guacamole PostgreSQL 初始化脚本
+- `scripts/create-rdp-connection.example.sql`：创建带文件传输、剪贴板和声音参数的 RDP 连接示例
+- `scripts/verify-gateway.sh`：快速验证 Guacamole HTTP 入口
 - `portal/index.html`：自定义入口页
 - `portal/styles.css`：入口页样式
 
@@ -182,6 +189,12 @@ docker run --rm guacamole/guacamole:${GUAC_VERSION:-latest} \
   /opt/guacamole/bin/initdb.sh --postgresql > initdb/initdb.sql
 ```
 
+也可以直接使用仓库脚本：
+
+```bash
+sh scripts/init-guacamole-db.sh
+```
+
 注意：
 
 - 这一步只在第一次部署前执行
@@ -218,6 +231,12 @@ curl -I http://127.0.0.1:8081/guacamole/
 ```
 
 如果返回 `200`，说明 Guacamole Web 已经启动。
+
+也可以使用仓库脚本验证：
+
+```bash
+sh scripts/verify-gateway.sh http://127.0.0.1:8081
+```
 
 ## 使用 Caddy 访问
 
@@ -410,6 +429,33 @@ Security mode: NLA
 Ignore server certificate: true
 ```
 
+如果希望启用浏览器文件传输、剪贴板优化和远端声音播放，可以参考：
+
+```bash
+docker exec -i guac-postgres psql -U guacamole_user -d guacamole_db \
+  < scripts/create-rdp-connection.example.sql
+```
+
+这个 SQL 示例会为 `PC-1` 设置以下能力：
+
+- `enable-drive=true`：启用 Guacamole RDP 虚拟磁盘，用于浏览器上传/下载文件
+- `drive-path=/guacdrive/pc1`：文件会落在 `guacd` 容器内的 `/guacdrive/pc1`
+- `disable-download=false`：允许从远程桌面下载文件
+- `disable-upload=false`：允许从浏览器上传文件到远程桌面
+- `disable-audio=false`：允许远程 Windows 声音播放到浏览器
+- `enable-audio-input=false`：默认不启用浏览器麦克风输入，需要时再改为 `true`
+- `normalize-clipboard=windows`：按 Windows 风格规范化剪贴板换行
+
+本工程已经在 `docker-compose.yml` 中把宿主机 `./drive` 挂载到 `guacd` 的 `/guacdrive`：
+
+```yaml
+guacd:
+  volumes:
+    - ./drive:/guacdrive
+```
+
+因此文件传输数据会保存在服务器项目目录下的 `drive/`。该目录已被 `.gitignore` 排除，不会提交到仓库。
+
 连接时弹出的凭据填写 Windows 本机账号：
 
 ```text
@@ -423,6 +469,90 @@ Ignore server certificate: true
 - 这里不是 Guacamole 登录账号
 - 如果 Windows 使用微软账号登录，用户名通常填写微软邮箱
 - 如果 Windows 使用本地账号，用户名填写本地账户名
+
+## 文件传输、剪贴板、快捷键、声音和端口
+
+### 文件传输
+
+启用 `enable-drive=true` 后，Guacamole 会在 RDP 会话中挂载一个虚拟磁盘。
+
+使用方式：
+
+- 浏览器内打开 Guacamole 侧边栏
+- 进入文件系统或上传下载区域
+- 上传的文件会进入 `drive-path` 对应目录
+- 远程 Windows 中可以通过 Guacamole 虚拟磁盘访问这些文件
+
+服务器侧默认目录：
+
+```text
+./drive/pc1
+```
+
+Linux 服务器上需要确保 `guacd` 运行用户可以写入该目录。官方容器中 `guacd` 通常使用 `uid=1000,gid=1000`：
+
+```bash
+sudo install -d -m 775 -o 1000 -g 1000 /opt/remote-desktop-gateway/drive
+sudo chown -R 1000:1000 /opt/remote-desktop-gateway/drive
+```
+
+验证容器内可写：
+
+```bash
+docker exec guacd sh -lc 'mkdir -p /guacdrive/pc1 && touch /guacdrive/pc1/.write-test && rm /guacdrive/pc1/.write-test'
+```
+
+### 剪贴板
+
+Guacamole 支持浏览器和远程桌面之间的文本剪贴板同步。
+
+注意事项：
+
+- 普通复制粘贴通常可以直接使用
+- 部分浏览器会要求授权剪贴板访问
+- 大段文本建议通过 Guacamole 侧边栏剪贴板区域同步
+- `Win+V` 这类系统级快捷键可能先被本机 Windows 或浏览器拦截，无法保证总是传到远程 Windows
+
+如果需要发送特殊组合键，优先使用 Guacamole 菜单里的屏幕键盘或组合键工具。
+
+### 声音
+
+`disable-audio=false` 会让远程 Windows 的声音通过 RDP 传到浏览器。
+
+如果需要把浏览器麦克风传给远程 Windows，需要把连接参数改为：
+
+```text
+enable-audio-input=true
+```
+
+启用麦克风后，浏览器通常会弹出权限确认。
+
+### 端口扩展
+
+本工程推荐通过 SSH 反向隧道扩展端口，而不是开放公网端口。
+
+例如第一台设备远程桌面：
+
+```bash
+ssh -N -R 127.0.0.1:13389:127.0.0.1:3389 tunnel-pc1@<server-ip>
+```
+
+如果还想让云服务器访问 Windows 上的另一个本地服务，例如 Windows 本机 `8080`，可以增加一个新的反向端口：
+
+```bash
+ssh -N \
+  -R 127.0.0.1:13389:127.0.0.1:3389 \
+  -R 127.0.0.1:18080:127.0.0.1:8080 \
+  tunnel-pc1@<server-ip>
+```
+
+这表示：
+
+```text
+服务器 127.0.0.1:18080 -> Windows 127.0.0.1:8080
+```
+
+不要把这些扩展端口监听到 `0.0.0.0`，除非你明确知道自己在做什么。
 
 ## Guacamole 默认账号
 

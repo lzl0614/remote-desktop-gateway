@@ -1,0 +1,64 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: guac-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    networks:
+      - guac-net
+
+  guacd:
+    image: guacamole/guacd:${GUAC_VERSION}
+    container_name: guacd
+    restart: unless-stopped
+    network_mode: host
+
+  guacamole:
+    image: guacamole/guacamole:${GUAC_VERSION}
+    container_name: guacamole
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      GUACD_HOSTNAME: ${GUACD_HOSTNAME}
+      GUACD_PORT: ${GUACD_PORT}
+      POSTGRESQL_HOSTNAME: postgres
+      POSTGRESQL_DATABASE: ${POSTGRES_DB}
+      POSTGRESQL_USER: ${POSTGRES_USER}
+      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${GUAC_WEB_BIND}:8080"
+    networks:
+      - guac-net
+
+  caddy:
+    image: caddy:2
+    container_name: guac-caddy
+    restart: unless-stopped
+    depends_on:
+      - guacamole
+    ports:
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./portal:/usr/share/caddy:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - guac-net
+
+networks:
+  guac-net:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:

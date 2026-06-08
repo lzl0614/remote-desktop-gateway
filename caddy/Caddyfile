@@ -1,0 +1,11 @@
+124.220.228.218 {
+    tls internal
+
+    @guacamole path /guacamole /guacamole/*
+    handle @guacamole {
+        reverse_proxy guacamole:8080
+    }
+
+    root * /usr/share/caddy
+    file_server
+}

@@ -1,0 +1,8 @@
+.env
+postgres/
+initdb/
+backups/
+caddy_data/
+caddy_config/
+*.log
+*.pid

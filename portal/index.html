@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Remote Desktop Gateway</title>
+    <meta
+      name="description"
+      content="A hosted access portal for entering the Guacamole remote desktop console."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <div class="ambient ambient-left"></div>
+      <div class="ambient ambient-right"></div>
+
+      <header class="topbar">
+        <div class="brand-lockup">
+          <span class="brand-mark">RD</span>
+          <div>
+            <p class="eyebrow">Self-Hosted Access</p>
+            <h1>Remote Desktop Gateway</h1>
+          </div>
+        </div>
+        <a class="ghost-link" href="/guacamole/" aria-label="Open the Guacamole console">
+          Open Console
+        </a>
+      </header>
+
+      <main class="hero-grid">
+        <section class="hero-copy">
+          <p class="section-kicker">Browser Control Portal</p>
+          <h2>Enter the secure gateway, then sign in to your device console.</h2>
+          <p class="hero-text">
+            This deployment uses Guacamole with reverse SSH tunnels, so public RDP
+            ports stay closed. After you open the browser console, you can access
+            any Windows device that has already joined the gateway.
+          </p>
+
+          <div class="status-strip" aria-label="Gateway status summary">
+            <article class="status-card">
+              <span class="status-label">Transport</span>
+              <strong>HTTPS Gateway</strong>
+            </article>
+            <article class="status-card">
+              <span class="status-label">Remote Protocol</span>
+              <strong>RDP over SSH-R</strong>
+            </article>
+            <article class="status-card">
+              <span class="status-label">Public Exposure</span>
+              <strong>Only 22 / 80 / 443</strong>
+            </article>
+          </div>
+        </section>
+
+        <section class="login-panel" aria-labelledby="login-title">
+          <div class="panel-glow"></div>
+          <div class="panel-body">
+            <p class="panel-tag">Control Login</p>
+            <h3 id="login-title">Enter The Remote Desktop Console</h3>
+            <p class="panel-desc">
+              Sign in with the Guacamole account assigned by your administrator.
+              After login, open your device connection to reach the desktop.
+            </p>
+
+            <div class="credential-preview" aria-hidden="true">
+              <label>
+                <span>Username</span>
+                <input type="text" placeholder="Enter your console username" readonly />
+              </label>
+              <label>
+                <span>Password</span>
+                <input type="password" placeholder="Enter your console password" readonly />
+              </label>
+            </div>
+
+            <a class="primary-action" href="/guacamole/">
+              Continue To Guacamole
+            </a>
+
+            <div class="support-row">
+              <span class="badge success">Tunnel Ready</span>
+              <span class="support-text">If the browser warns about the certificate, continue according to the current deployment guide.</span>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <section class="info-grid">
+        <article class="info-card">
+          <p class="info-title">Quick Start</p>
+          <ol>
+            <li>Open the Guacamole login page.</li>
+            <li>Enter the account issued for this gateway.</li>
+            <li>Pick your device connection, such as `PC-1`.</li>
+          </ol>
+        </article>
+
+        <article class="info-card">
+          <p class="info-title">Current Stack</p>
+          <ul>
+            <li>Browser access through an HTTPS gateway</li>
+            <li>Guacamole manages all remote connections</li>
+            <li>Windows devices join through reverse SSH tunnels</li>
+          </ul>
+        </article>
+
+        <article class="info-card accent-card">
+          <p class="info-title">Security Note</p>
+          <p>
+            Keep public `3389` closed. Device onboarding, account issuance, and
+            password rotation should all stay inside a controlled workflow.
+          </p>
+        </article>
+      </section>
+    </div>
+  </body>
+</html>
